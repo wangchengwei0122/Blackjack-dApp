@@ -2,37 +2,81 @@
 
 import { useEffect, useState } from 'react';
 
-export default function Game() {
-  const suits = ['♠️', '♥️', '♦️', '♣️'];
-  const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-  const initialDeck = suits.map((suit) => ranks.map((rank) => ({ suit: suit, rank: rank }))).flat();
+import { Card } from '../api/route';
 
-  const [winner, setWinner] = useState<string>('');
+export default function Page() {
   const [message, setMessage] = useState<string>('');
-  const [deck, setDeck] = useState<{ suit: string; rank: string }[]>([]);
+  const [playerHand, setPlayerHand] = useState<Card[]>([]);
+  const [dealerHand, setDealerHand] = useState<Card[]>([]);
+  const [score, setScore] = useState<number>(0);
 
   useEffect(() => {
-    setWinner('player');
-    setMessage('Player win! black jack!');
-    setDeck(initialDeck);
+    setMessage('');
+    const initialGame = async () => {
+      const response = await fetch('/api', {
+        method: 'GET',
+      });
+      const result = await response.json();
+      setPlayerHand(result.playerHand);
+      setDealerHand(result.dealerHand);
+      setScore(result.score);
+    };
+    initialGame();
   }, []);
+
+  async function handleHit() {
+    const response = await fetch('api', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'hit' }),
+    });
+    const { playerHand, dealerHand, message, score } = await response.json();
+    setPlayerHand(playerHand);
+    setDealerHand(dealerHand);
+    setMessage(message);
+    setScore(score);
+  }
+
+  async function handleStand() {
+    const response = await fetch('api', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'stand' }),
+    });
+    const { playerHand, dealerHand, message, score } = await response.json();
+    setPlayerHand(playerHand);
+    setDealerHand(dealerHand);
+    setMessage(message);
+    setScore(score);
+  }
+
+  async function handleReset() {
+    const response = await fetch('api', {
+      method: 'GET',
+    });
+
+    const { playerHand, dealerHand, message, score } = await response.json();
+    setPlayerHand(playerHand);
+    setDealerHand(dealerHand);
+    setMessage(message);
+    setScore(score);
+  }
 
   return (
     <div className="flex flex-col items-center h-screen bg-gray-400">
       <h1 className="my-4 text-4xl bold">Welcome the black jack game!!</h1>
+      <h1 className="my-4 text-4xl bold">Score: {score}</h1>
       <h2
         className={`my-4 text-2xl bold
-        ${winner === 'player' ? 'bg-green-500' : 'bg-yellow-500'}`}
+        ${message.includes('win') ? 'bg-green-500' : 'bg-yellow-500'}`}
       >
         {message}
       </h2>
       <div>
         dealer hand:
         <div className="flex flex-row gap-2">
-          {deck.length === 0 ? (
+          {dealerHand.length === 0 ? (
             <></>
           ) : (
-            deck.slice(0, 3).map((card, index) => (
+            dealerHand.map((card, index) => (
               <div
                 className="h-42 w-28 border-black border-1 flex flex-col justify-between rounded-sm bg-white"
                 key={index}
@@ -49,10 +93,10 @@ export default function Game() {
       <div>
         Player hand hand:
         <div className="flex flex-row gap-2">
-          {deck.length === 0 ? (
+          {playerHand.length === 0 ? (
             <></>
           ) : (
-            deck.slice(0, 3).map((card, index) => (
+            playerHand.map((card, index) => (
               <div
                 className="h-42 w-28 border-black border-1 flex flex-col justify-between rounded-sm bg-white"
                 key={index}
@@ -66,9 +110,23 @@ export default function Game() {
         </div>
       </div>
       <div className="flex flex-row gap-2 mt-4">
-        <button className="p-1 bg-amber-300 rounded-lg"> hit </button>
-        <button className="p-1 bg-amber-300 rounded-lg"> stand </button>
-        <button className="p-1 bg-amber-300 rounded-lg"> reset </button>
+        {message !== '' ? (
+          <button onClick={handleReset} className="p-1 bg-amber-300 rounded-lg">
+            {' '}
+            reset{' '}
+          </button>
+        ) : (
+          <>
+            <button onClick={handleHit} className="p-1 bg-amber-300 rounded-lg">
+              {' '}
+              hit{' '}
+            </button>
+            <button onClick={handleStand} className="p-1 bg-amber-300 rounded-lg">
+              {' '}
+              stand{' '}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
